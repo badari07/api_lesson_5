@@ -30,7 +30,26 @@ export const signup = async (req, res) => {
   }
 };
 
-export const signin = async (req, res) => {};
+export const signin = async (req, res) => {
+  if (!req.body.email || !req.body.password) {
+    return res.status(400).send({ message: "email & password is required" });
+  }
+  const user = await User.findOne({ email: req.body.email }).exec();
+  if (!user) {
+    return res.status(401).send({ message: "no auth" });
+  }
+  try {
+    const match = await user.ckeckPassword(req.body.password);
+    if (!match) {
+      return res.status(401).send({ message: "no auth" });
+    }
+    const token = newToken(user);
+    return res.status(201).send({ token });
+  } catch (err) {
+    console.error(err);
+    return res.status(401).send({ message: "no auth" });
+  }
+};
 
 export const protect = async (req, res, next) => {
   next();
