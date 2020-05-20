@@ -38,6 +38,7 @@ export const signin = async (req, res) => {
   if (!user) {
     return res.status(401).send({ message: "no auth" });
   }
+
   try {
     const match = await user.ckeckPassword(req.body.password);
     if (!match) {
@@ -52,5 +53,23 @@ export const signin = async (req, res) => {
 };
 
 export const protect = async (req, res, next) => {
-  next();
+  if (!req.headers.authorization) {
+    return res.status(401).end();
+  }
+  let token = req.headers.authorization.split("Bearer ")[1];
+  if (!token) {
+    return res.status(401).end();
+  }
+  try {
+    const payload = await verifyToken(token);
+    const user = await User.findById(payload.id)
+      .select("-password")
+      .lean()
+      .exec();
+    req.user = user;
+    next();
+  } catch (err) {
+    console.error(err);
+    return res.status(401).end();
+  }
 };
